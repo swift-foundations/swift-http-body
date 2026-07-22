@@ -10,10 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 public import Byte_Primitive
-public import Coder_Primitives
 public import HTTP_Standard
-public import Parser_Primitive
-public import Serializer_Primitive
 
 extension RFC_9110.Body.Coder.Witness: RFC_9110.Body.Coder.`Protocol` {
     public typealias Input = [Byte]
@@ -29,14 +26,6 @@ extension RFC_9110.Body.Coder.Witness: RFC_9110.Body.Coder.`Protocol` {
     /// implementation, not its media type.
     @inlinable
     public static var contentType: HTTP.MediaType { Media.contentType }
-
-    /// Explicit leaf body — disambiguates the two inherited `Body == Never`
-    /// default getters (`Parser.Protocol` and `Serializer.Protocol` each
-    /// supply one). Concrete conformers fail to type-check without it.
-    @inlinable
-    public var body: Never {
-        borrowing get { return fatalError("leaf witness — parse(_:) and serialize(_:into:) are implemented directly") }
-    }
 
     @inlinable
     public func parse(_ input: inout [Byte]) throws(Failure) -> Output {

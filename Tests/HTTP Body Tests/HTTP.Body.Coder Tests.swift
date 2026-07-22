@@ -49,7 +49,7 @@ extension RFC_9110.Body.Coder.Test {
         }
     }
 
-    /// A codec that always refuses to decode — exercises `decodeFailed`.
+    /// A codec that always refuses to decode — exercises `decode`.
     struct Rejecting: RFC_9110.Body.Coder.`Protocol` {
         enum Fault: Swift.Error, Equatable { case always }
 
@@ -107,7 +107,10 @@ extension RFC_9110.Body.Coder.Test.Unit {
     @Test
     func `witness round-trips through its stored closures`() throws {
         let witness = RFC_9110.Body.Coder.Witness<RFC_9110.Body.Coder.Test.OctetStream, [Byte], Never>(
-            parse: { bytes in defer { bytes = [] }; return bytes },
+            parse: { bytes in
+                defer { bytes = [] }
+                return bytes
+            },
             serialize: { value, buffer in buffer.append(contentsOf: value) }
         )
 
@@ -139,7 +142,7 @@ extension RFC_9110.Body.Coder.Test.`Edge Case` {
     @Test
     func `decoding a request with no body reports the missing body`() {
         let request = HTTP.Request(method: .post)
-        #expect(throws: RFC_9110.Body.Coder.Error<Never>.bodyMissing) {
+        #expect(throws: RFC_9110.Body.Coder.Error<Never>.body(.missing)) {
             try request.body(decode: [Byte].self, using: RFC_9110.Body.Coder.Test.Passthrough())
         }
     }
@@ -149,7 +152,7 @@ extension RFC_9110.Body.Coder.Test.`Edge Case` {
         var request = HTTP.Request(method: .post)
         request.body = RFC_9110.Body.Coder.Test.hello
 
-        #expect(throws: RFC_9110.Body.Coder.Error<Never>.contentTypeMissing(expected: .plain)) {
+        #expect(throws: RFC_9110.Body.Coder.Error<Never>.header(.missing(expected: .plain))) {
             try request.body(decode: [Byte].self, using: RFC_9110.Body.Coder.Test.Passthrough())
         }
     }
@@ -163,21 +166,21 @@ extension RFC_9110.Body.Coder.Test.`Edge Case` {
         )
 
         #expect(
-            throws: RFC_9110.Body.Coder.Error<Never>.contentTypeUnacceptable(expected: .plain, actual: .json)
+            throws: RFC_9110.Body.Coder.Error<Never>.header(.unacceptable(expected: .plain, actual: .json))
         ) {
             try request.body(decode: [Byte].self, using: RFC_9110.Body.Coder.Test.Passthrough())
         }
     }
 
     @Test
-    func `a codec failure surfaces as decodeFailed, not as a media-type problem`() {
+    func `a codec failure surfaces as decode, not as a media-type problem`() {
         var request = HTTP.Request(method: .post)
         request.body = RFC_9110.Body.Coder.Test.hello
         request.headers.append(
             HTTP.Header.Field(name: .contentType, value: HTTP.Header.Field.Value(unchecked: "text/plain"))
         )
 
-        let expected = RFC_9110.Body.Coder.Error<RFC_9110.Body.Coder.Test.Rejecting.Fault>.decodeFailed(.always)
+        let expected = RFC_9110.Body.Coder.Error<RFC_9110.Body.Coder.Test.Rejecting.Fault>.decode(.always)
         #expect(throws: expected) {
             try request.body(decode: [Byte].self, using: RFC_9110.Body.Coder.Test.Rejecting())
         }
@@ -188,22 +191,22 @@ extension RFC_9110.Body.Coder.Test.`Edge Case` {
 
 extension RFC_9110.Body.Coder.Test.Integration {
     @Test
-    func `setting a body installs the bytes and the Content-Type together`() throws {
+    func `setting a body installs the bytes and the Content-Type together`() {
         var request = HTTP.Request(method: .post)
-        try request.body(set: RFC_9110.Body.Coder.Test.hello, using: RFC_9110.Body.Coder.Test.Passthrough())
+        request.body(set: RFC_9110.Body.Coder.Test.hello, using: RFC_9110.Body.Coder.Test.Passthrough())
 
         #expect(request.body == RFC_9110.Body.Coder.Test.hello)
         #expect(request.headers.first("Content-Type")?.rawValue == "text/plain")
     }
 
     @Test
-    func `setting a body replaces any Content-Type already present`() throws {
+    func `setting a body replaces any Content-Type already present`() {
         var request = HTTP.Request(method: .post)
         request.headers.append(
             HTTP.Header.Field(name: .contentType, value: HTTP.Header.Field.Value(unchecked: "application/json"))
         )
 
-        try request.body(set: RFC_9110.Body.Coder.Test.hello, using: RFC_9110.Body.Coder.Test.Passthrough())
+        request.body(set: RFC_9110.Body.Coder.Test.hello, using: RFC_9110.Body.Coder.Test.Passthrough())
 
         // One media type per message — the stale label must be gone, not
         // merely outnumbered.
@@ -215,7 +218,7 @@ extension RFC_9110.Body.Coder.Test.Integration {
     func `a body set through a codec decodes back through the same codec`() throws {
         let coder = RFC_9110.Body.Coder.Test.Passthrough()
         var request = HTTP.Request(method: .post)
-        try request.body(set: RFC_9110.Body.Coder.Test.hello, using: coder)
+        request.body(set: RFC_9110.Body.Coder.Test.hello, using: coder)
 
         #expect(try request.body(decode: [Byte].self, using: coder) == RFC_9110.Body.Coder.Test.hello)
     }

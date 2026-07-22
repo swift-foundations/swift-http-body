@@ -11,11 +11,6 @@
 
 public import JSON
 
-extension JSON {
-    /// The JSON document as an HTTP message body.
-    public enum Body {}
-}
-
 extension JSON.Body {
     /// Reads and writes an HTTP message body as JSON, owning the
     /// `application/json` media type.

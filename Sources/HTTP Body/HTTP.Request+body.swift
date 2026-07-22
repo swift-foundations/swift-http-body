@@ -10,7 +10,6 @@
 // ===----------------------------------------------------------------------===//
 
 public import Byte_Primitive
-public import Coder_Primitives
 public import HTTP_Standard
 public import Parser_Primitive
 public import Serializer_Primitive
@@ -71,25 +70,25 @@ extension RFC_9110.Request {
         _ = outputType
 
         guard var bytes = self.body else {
-            throw .bodyMissing
+            throw .body(.missing)
         }
 
         guard let field = self.headers.first(RFC_9110.Header.Field.Name.contentType.rawValue) else {
-            throw .contentTypeMissing(expected: C.contentType)
+            throw .header(.missing(expected: C.contentType))
         }
 
         guard let mediaType = HTTP.MediaType.parse(field.rawValue) else {
-            throw .contentTypeMalformed(expected: C.contentType, actual: field.rawValue)
+            throw .header(.malformed(expected: C.contentType, actual: field.rawValue))
         }
 
         guard coder.accepts(mediaType) else {
-            throw .contentTypeUnacceptable(expected: C.contentType, actual: mediaType)
+            throw .header(.unacceptable(expected: C.contentType, actual: mediaType))
         }
 
         do throws(C.Failure) {
             return try coder.parse(&bytes)
         } catch {
-            throw .decodeFailed(error)
+            throw .decode(error)
         }
     }
 }

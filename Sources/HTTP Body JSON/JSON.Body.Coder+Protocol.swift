@@ -13,8 +13,6 @@ public import Byte_Primitive
 public import Either_Primitives
 public import HTTP_Body
 public import JSON
-public import Parser_Primitive
-public import Serializer_Primitive
 
 extension JSON.Body.Coder: RFC_9110.Body.Coder.`Protocol` {
     public typealias Input = [Byte]
@@ -28,9 +26,8 @@ extension JSON.Body.Coder: RFC_9110.Body.Coder.`Protocol` {
     public typealias Body = Never
 
     /// Explicit leaf body. `Parser.Protocol` and `Serializer.Protocol` each
-    /// supply a `Body == Never` default getter, so a type refining both
-    /// inherits two equally-good candidates and the conformance is ambiguous
-    /// without this override (the `RFC_7230.Body.Parser` precedent).
+    /// supply a `Body == Never` default getter, and this concrete conformance
+    /// otherwise has two equally-good candidates.
     @inlinable
     public var body: Never {
         borrowing get { return fatalError("leaf codec — parse(_:) and serialize(_:into:) are implemented directly") }

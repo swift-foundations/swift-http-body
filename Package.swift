@@ -9,11 +9,11 @@ let package = Package(
         .iOS(.v26),
         .tvOS(.v26),
         .watchOS(.v26),
-        .visionOS(.v26)
+        .visionOS(.v26),
     ],
     products: [
         .library(name: "HTTP Body", targets: ["HTTP Body"]),
-        .library(name: "HTTP Body JSON", targets: ["HTTP Body JSON"])
+        .library(name: "HTTP Body JSON", targets: ["HTTP Body JSON"]),
     ],
     dependencies: [
         .package(url: "https://github.com/swift-standards/swift-http-standard.git", branch: "main"),
@@ -22,7 +22,7 @@ let package = Package(
         .package(url: "https://github.com/swift-primitives/swift-parser-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-serializer-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-either-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-foundations/swift-json.git", branch: "main")
+        .package(url: "https://github.com/swift-foundations/swift-json.git", branch: "main"),
     ],
     targets: [
         .target(
@@ -36,7 +36,7 @@ let package = Package(
                 // associated types in this package's own public surface requires
                 // depending on them directly ([MOD-038]).
                 .product(name: "Parser Primitive", package: "swift-parser-primitives"),
-                .product(name: "Serializer Primitive", package: "swift-serializer-primitives")
+                .product(name: "Serializer Primitive", package: "swift-serializer-primitives"),
             ]
         ),
         // Opt-in leaf: the JSON wire form. Consumers that do not encode JSON
@@ -49,29 +49,32 @@ let package = Package(
                 .product(name: "Byte Primitives Standard Library Integration", package: "swift-byte-primitives"),
                 .product(name: "Either Primitives", package: "swift-either-primitives"),
                 .product(name: "Parser Primitive", package: "swift-parser-primitives"),
-                .product(name: "Serializer Primitive", package: "swift-serializer-primitives")
+                .product(name: "Serializer Primitive", package: "swift-serializer-primitives"),
             ]
         ),
         .testTarget(
             name: "HTTP Body Tests",
             dependencies: [
                 "HTTP Body",
+                .product(name: "Byte Primitive", package: "swift-byte-primitives"),
                 // Fixture codecs conform to the contract directly, so the
                 // tests name the inherited associated types themselves.
                 .product(name: "Coder Primitives", package: "swift-coder-primitives"),
                 .product(name: "Parser Primitive", package: "swift-parser-primitives"),
-                .product(name: "Serializer Primitive", package: "swift-serializer-primitives")
+                .product(name: "Serializer Primitive", package: "swift-serializer-primitives"),
             ]
         ),
         .testTarget(
             name: "HTTP Body JSON Tests",
             dependencies: [
+                "HTTP Body",
                 "HTTP Body JSON",
+                .product(name: "Byte Primitive", package: "swift-byte-primitives"),
                 .product(name: "Coder Primitives", package: "swift-coder-primitives"),
                 .product(name: "Parser Primitive", package: "swift-parser-primitives"),
-                .product(name: "Serializer Primitive", package: "swift-serializer-primitives")
+                .product(name: "Serializer Primitive", package: "swift-serializer-primitives"),
             ]
-        )
+        ),
     ],
     swiftLanguageModes: [.v6]
 )
