@@ -14,12 +14,13 @@ public import HTTP_Standard
 extension RFC_9110.Body.Coder {
     /// A type that names one media type.
     ///
-    /// ``HTTP/Body/Coder/Protocol`` states its media type at the type level, so
-    /// a codec's media type travels with the codec's *type* and cannot be
-    /// varied per value. The closure-backed ``HTTP/Body/Coder/Witness`` erases
-    /// the codec's implementation but must still answer that type-level
-    /// question, so it takes the answer as a parameter: `Media` is where the
-    /// witness gets its `contentType` from.
+    /// ``HTTP/Body/Coder/Protocol`` states its media identity at the type level,
+    /// so a codec's type/subtype family travels with the codec's *type*. The
+    /// realized media type returned while encoding may add parameters such as a
+    /// multipart boundary. The closure-backed ``HTTP/Body/Coder/Witness``
+    /// erases the codec's implementation but must still answer the type-level
+    /// identity question, so it takes the answer as a parameter: `Media` is
+    /// where the witness gets its `contentType` from.
     ///
     /// Conformers are empty — this carries no values, only a name:
     ///

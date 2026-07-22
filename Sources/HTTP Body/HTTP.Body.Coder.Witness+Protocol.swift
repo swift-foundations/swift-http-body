@@ -36,4 +36,20 @@ extension RFC_9110.Body.Coder.Witness: RFC_9110.Body.Coder.`Protocol` {
     public func serialize(_ output: Output, into buffer: inout [Byte]) throws(Failure) {
         try _serialize(output, &buffer)
     }
+
+    @inlinable
+    public func decode(
+        _ input: inout [Byte],
+        as mediaType: HTTP.MediaType
+    ) throws(Failure) -> Output {
+        try _decode(&input, mediaType)
+    }
+
+    @inlinable
+    public func encode(
+        _ output: Output,
+        into buffer: inout [Byte]
+    ) throws(Failure) -> HTTP.MediaType {
+        try _encode(output, &buffer)
+    }
 }

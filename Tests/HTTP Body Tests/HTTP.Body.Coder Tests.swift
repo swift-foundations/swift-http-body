@@ -134,6 +134,20 @@ extension RFC_9110.Body.Coder.Test.Unit {
         #expect(json.accepts(.json))
         #expect(!json.accepts(.plain))
     }
+
+    @Test
+    func `default body coding delegates to parse and serialize`() {
+        let coder = RFC_9110.Body.Coder.Test.Passthrough()
+        var buffer: [Byte] = []
+
+        let mediaType = coder.encode(RFC_9110.Body.Coder.Test.hello, into: &buffer)
+        #expect(mediaType == .plain)
+        #expect(buffer == RFC_9110.Body.Coder.Test.hello)
+
+        var input = buffer
+        #expect(coder.decode(&input, as: .plain) == RFC_9110.Body.Coder.Test.hello)
+        #expect(input.isEmpty)
+    }
 }
 
 // MARK: - Edge Case
@@ -221,5 +235,48 @@ extension RFC_9110.Body.Coder.Test.Integration {
         request.body(set: RFC_9110.Body.Coder.Test.hello, using: coder)
 
         #expect(try request.body(decode: [Byte].self, using: coder) == RFC_9110.Body.Coder.Test.hello)
+    }
+
+    @Test
+    func `witness preserves the realized media type in both directions`() throws {
+        let realized = HTTP.MediaType(
+            "multipart",
+            "form-data",
+            parameters: ["boundary": "Queue20Boundary"]
+        )
+        let coder = RFC_9110.Body.Coder.Witness<
+            RFC_9110.Body.Coder.Test.MultipartFormData,
+            [Byte],
+            Never
+        >(
+            parse: { input in
+                defer { input = [] }
+                return input
+            },
+            serialize: { output, buffer in
+                buffer.append(contentsOf: output)
+            },
+            decode: { input, mediaType in
+                #expect(mediaType.parameters["boundary"] == "Queue20Boundary")
+                defer { input = [] }
+                return input
+            },
+            encode: { output, buffer in
+                buffer.append(contentsOf: output)
+                return realized
+            }
+        )
+        var request = HTTP.Request(method: .post)
+
+        request.body(set: RFC_9110.Body.Coder.Test.hello, using: coder)
+
+        #expect(
+            request.headers.first("Content-Type")?.rawValue
+                == "multipart/form-data; boundary=Queue20Boundary"
+        )
+        #expect(
+            try request.body(decode: [Byte].self, using: coder)
+                == RFC_9110.Body.Coder.Test.hello
+        )
     }
 }

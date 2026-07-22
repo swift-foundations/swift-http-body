@@ -12,7 +12,6 @@
 public import Byte_Primitive
 public import HTTP_Standard
 public import Parser_Primitive
-public import Serializer_Primitive
 
 extension RFC_9110.Request {
     /// Installs `value` as this request's body, encoded by `coder`, and states
@@ -36,7 +35,7 @@ extension RFC_9110.Request {
         // append-oriented and must never be entered over a non-empty buffer
         // owned by the prepend world (ratification-queue item 14).
         var bytes: [Byte] = []
-        try coder.serialize(value, into: &bytes)
+        let contentType = try coder.encode(value, into: &bytes)
 
         self.body = bytes
         self.headers.removeAll(named: RFC_9110.Header.Field.Name.contentType.rawValue)
@@ -45,7 +44,7 @@ extension RFC_9110.Request {
                 name: .contentType,
                 // The media type's own description is field-value-legal by
                 // construction (RFC 9110 §8.3 token/parameter grammar).
-                value: RFC_9110.Header.Field.Value(unchecked: C.contentType.description)
+                value: RFC_9110.Header.Field.Value(unchecked: contentType.description)
             )
         )
     }
@@ -86,7 +85,7 @@ extension RFC_9110.Request {
         }
 
         do throws(C.Failure) {
-            return try coder.parse(&bytes)
+            return try coder.decode(&bytes, as: mediaType)
         } catch {
             throw .decode(error)
         }

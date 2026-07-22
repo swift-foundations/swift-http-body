@@ -57,10 +57,15 @@ extension RFC_9110.Body.Coder {
     /// ```
     public protocol `Protocol`<Output, Failure>: Coder_Primitives.Coder.`Protocol`
     where Input == [Byte], Buffer == [Byte] {
-        /// The media type this codec writes, and the one it reads.
+        /// The media type family this codec writes and reads.
         ///
-        /// Type-level: a codec's media type is a property of the codec itself,
-        /// not of a particular value of it. The type-erased
+        /// Type-level: a codec's media identity is a property of the codec
+        /// itself, not of a particular value of it. Parameters that are only
+        /// known while encoding — notably an RFC 2046 multipart boundary — are
+        /// returned by ``encode(_:into:)`` as part of the realized media type.
+        /// Conformers must return a realized value whose type and subtype match
+        /// this identity.
+        /// The type-erased
         /// ``HTTP/Body/Coder/Witness`` carries it through a
         /// ``HTTP/Body/Coder/Media`` parameter rather than as stored data.
         static var contentType: HTTP.MediaType { get }
@@ -72,6 +77,30 @@ extension RFC_9110.Body.Coder {
         /// ``contentType``, ignoring parameters — a body labelled
         /// `application/json;charset=utf-8` is JSON.
         func accepts(_ mediaType: HTTP.MediaType) -> Bool
+
+        /// Decodes bytes whose realized media type has already been accepted.
+        ///
+        /// The media type is passed through rather than discarded so codecs
+        /// whose grammar depends on a parameter — notably multipart codecs —
+        /// can recover the sender's boundary. Fixed-media codecs inherit a
+        /// default that delegates to ``parse(_:)``.
+        func decode(
+            _ input: inout [Byte],
+            as mediaType: HTTP.MediaType
+        ) throws(Failure) -> Output
+
+        /// Encodes a value and returns the realized media type for those bytes.
+        ///
+        /// The returned value, rather than ``contentType``, is installed on the
+        /// request. This lets an encoder select a parameter while producing the
+        /// bytes and report the exact value that describes them. Its type and
+        /// subtype must match ``contentType``; parameters may differ. Fixed-
+        /// media codecs inherit a default that serializes and returns
+        /// ``contentType``.
+        func encode(
+            _ output: Output,
+            into buffer: inout [Byte]
+        ) throws(Failure) -> HTTP.MediaType
     }
 }
 
@@ -79,5 +108,23 @@ extension RFC_9110.Body.Coder.`Protocol` {
     @inlinable
     public func accepts(_ mediaType: HTTP.MediaType) -> Bool {
         mediaType.matches(Self.contentType)
+    }
+
+    @inlinable
+    public func decode(
+        _ input: inout [Byte],
+        as mediaType: HTTP.MediaType
+    ) throws(Failure) -> Output {
+        _ = mediaType
+        return try parse(&input)
+    }
+
+    @inlinable
+    public func encode(
+        _ output: Output,
+        into buffer: inout [Byte]
+    ) throws(Failure) -> HTTP.MediaType {
+        try serialize(output, into: &buffer)
+        return Self.contentType
     }
 }
