@@ -72,22 +72,7 @@ extension RFC_9110.Request {
             throw .body(.missing)
         }
 
-        guard let field = self.headers.first(RFC_9110.Header.Field.Name.contentType.rawValue) else {
-            throw .header(.missing(expected: C.contentType))
-        }
-
-        guard let mediaType = HTTP.MediaType.parse(field.rawValue) else {
-            throw .header(.malformed(expected: C.contentType, actual: field.rawValue))
-        }
-
-        guard coder.accepts(mediaType) else {
-            throw .header(.unacceptable(expected: C.contentType, actual: mediaType))
-        }
-
-        do throws(C.Failure) {
-            return try coder.decode(&bytes, as: mediaType)
-        } catch {
-            throw .decode(error)
-        }
+        let field = self.headers.first(RFC_9110.Header.Field.Name.contentType.rawValue)
+        return try coder.decode(&bytes, labelled: field?.rawValue)
     }
 }
