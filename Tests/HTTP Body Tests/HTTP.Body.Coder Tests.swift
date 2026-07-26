@@ -136,6 +136,49 @@ extension RFC_9110.Body.Coder.Test.Unit {
     }
 
     @Test
+    func `labelled decode accepts its media type and consumes the input`() throws {
+        var input = RFC_9110.Body.Coder.Test.hello
+
+        let decoded = try RFC_9110.Body.Coder.Test.Passthrough()
+            .decode(&input, labelled: "text/plain; charset=utf-8")
+
+        #expect(decoded == RFC_9110.Body.Coder.Test.hello)
+        #expect(input.isEmpty)
+    }
+
+    @Test
+    func `labelled decode hands the realized media type to the codec`() throws {
+        let coder = RFC_9110.Body.Coder.Witness<
+            RFC_9110.Body.Coder.Test.MultipartFormData,
+            [Byte],
+            Never
+        >(
+            parse: { input in
+                defer { input = [] }
+                return input
+            },
+            serialize: { output, buffer in buffer.append(contentsOf: output) },
+            decode: { input, mediaType in
+                #expect(mediaType.parameters["boundary"] == "Labelled20Boundary")
+                defer { input = [] }
+                return input
+            },
+            encode: { output, buffer in
+                buffer.append(contentsOf: output)
+                return RFC_9110.Body.Coder.Test.MultipartFormData.contentType
+            }
+        )
+        var input = RFC_9110.Body.Coder.Test.hello
+
+        let decoded = try coder.decode(
+            &input,
+            labelled: "multipart/form-data; boundary=Labelled20Boundary"
+        )
+
+        #expect(decoded == RFC_9110.Body.Coder.Test.hello)
+    }
+
+    @Test
     func `default body coding delegates to parse and serialize`() {
         let coder = RFC_9110.Body.Coder.Test.Passthrough()
         var buffer: [Byte] = []
@@ -183,6 +226,53 @@ extension RFC_9110.Body.Coder.Test.`Edge Case` {
             throws: RFC_9110.Body.Coder.Error<Never>.header(.unacceptable(expected: .plain, actual: .json))
         ) {
             try request.body(decode: [Byte].self, using: RFC_9110.Body.Coder.Test.Passthrough())
+        }
+    }
+
+    @Test
+    func `labelled decode with no label reports the missing Content-Type`() {
+        var input = RFC_9110.Body.Coder.Test.hello
+
+        #expect(throws: RFC_9110.Body.Coder.Error<Never>.header(.missing(expected: .plain))) {
+            try RFC_9110.Body.Coder.Test.Passthrough().decode(&input, labelled: nil)
+        }
+    }
+
+    @Test
+    func `labelled decode refuses a label that is not a media type`() {
+        var input = RFC_9110.Body.Coder.Test.hello
+
+        #expect(
+            throws: RFC_9110.Body.Coder.Error<Never>.header(
+                .malformed(expected: .plain, actual: "not-a-media-type")
+            )
+        ) {
+            try RFC_9110.Body.Coder.Test.Passthrough()
+                .decode(&input, labelled: "not-a-media-type")
+        }
+    }
+
+    @Test
+    func `labelled decode refuses a label of another media type`() {
+        var input = RFC_9110.Body.Coder.Test.hello
+
+        #expect(
+            throws: RFC_9110.Body.Coder.Error<Never>.header(
+                .unacceptable(expected: .plain, actual: .json)
+            )
+        ) {
+            try RFC_9110.Body.Coder.Test.Passthrough()
+                .decode(&input, labelled: "application/json")
+        }
+    }
+
+    @Test
+    func `labelled decode surfaces a codec failure as decode`() {
+        var input = RFC_9110.Body.Coder.Test.hello
+
+        let expected = RFC_9110.Body.Coder.Error<RFC_9110.Body.Coder.Test.Rejecting.Fault>.decode(.always)
+        #expect(throws: expected) {
+            try RFC_9110.Body.Coder.Test.Rejecting().decode(&input, labelled: "text/plain")
         }
     }
 

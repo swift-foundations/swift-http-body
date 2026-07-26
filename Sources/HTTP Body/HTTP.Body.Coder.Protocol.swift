@@ -105,6 +105,42 @@ extension RFC_9110.Body.Coder {
 }
 
 extension RFC_9110.Body.Coder.`Protocol` {
+    /// Validates a raw `Content-Type` field value, then decodes `input`.
+    ///
+    /// This is the label-validation step every carrier of body bytes needs:
+    /// absent, malformed, and unacceptable labels are refused — in that
+    /// order, so the error names the first thing actually wrong — and only
+    /// an accepted label's realized media type reaches ``decode(_:as:)``.
+    /// `HTTP.Request.body(decode:using:)` delegates to it; a routing layer
+    /// whose request carrier is not `HTTP.Request` calls it directly. One
+    /// grammar answers "may this codec read these bytes", not one per
+    /// carrier.
+    ///
+    /// - Parameters:
+    ///   - input: The body bytes; consumed by the codec on success.
+    ///   - fieldValue: The raw `Content-Type` field value, or `nil` when the
+    ///     message carries none.
+    @inlinable
+    public func decode(
+        _ input: inout [Byte],
+        labelled fieldValue: Swift.String?
+    ) throws(RFC_9110.Body.Coder.Error<Failure>) -> Output {
+        guard let fieldValue else {
+            throw .header(.missing(expected: Self.contentType))
+        }
+        guard let mediaType = HTTP.MediaType.parse(fieldValue) else {
+            throw .header(.malformed(expected: Self.contentType, actual: fieldValue))
+        }
+        guard accepts(mediaType) else {
+            throw .header(.unacceptable(expected: Self.contentType, actual: mediaType))
+        }
+        do throws(Failure) {
+            return try decode(&input, as: mediaType)
+        } catch {
+            throw .decode(error)
+        }
+    }
+
     @inlinable
     public func accepts(_ mediaType: HTTP.MediaType) -> Bool {
         mediaType.matches(Self.contentType)
