@@ -37,12 +37,16 @@ extension RFC_9110.Body.Coder.Error: CustomStringConvertible {
         switch self {
         case .body(.missing):
             "request has no body"
+
         case .header(.missing(let expected)):
             "request body has no Content-Type; expected \(expected)"
+
         case .header(.malformed(let expected, let actual)):
             "Content-Type '\(actual)' is not a well-formed media type; expected \(expected)"
+
         case .header(.unacceptable(let expected, let actual)):
             "Content-Type \(actual) is not accepted; expected \(expected)"
+
         case .decode(let failure):
             "body did not decode: \(failure)"
         }
