@@ -12,9 +12,11 @@
 import HTTP_Body
 
 extension RFC_9110.Body.Coder.Test {
-    enum MultipartFormData: RFC_9110.Body.Coder.Media {
-        static var contentType: HTTP.MediaType {
-            HTTP.MediaType("multipart", "form-data")
-        }
+    enum MultipartFormData: RFC_9110.Body.Coder.Media {}
+}
+
+extension RFC_9110.Body.Coder.Test.MultipartFormData {
+    static var contentType: HTTP.MediaType {
+        HTTP.MediaType("multipart", "form-data")
     }
 }

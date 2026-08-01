@@ -28,61 +28,71 @@ extension RFC_9110.Body.Coder {
 
 extension RFC_9110.Body.Coder.Test {
     /// A codec that passes bytes through unchanged, labelled `text/plain`.
-    struct Passthrough: RFC_9110.Body.Coder.`Protocol` {
-        typealias Input = [Byte]
-        typealias Buffer = [Byte]
-        typealias Output = [Byte]
-        typealias Failure = Never
-        typealias Body = Never
-
-        static var contentType: HTTP.MediaType { .plain }
-
-        var body: Never { borrowing get { return fatalError("leaf") } }
-
-        func parse(_ input: inout [Byte]) -> [Byte] {
-            defer { input = [] }
-            return input
-        }
-
-        func serialize(_ output: [Byte], into buffer: inout [Byte]) {
-            buffer.append(contentsOf: output)
-        }
-    }
+    struct Passthrough: RFC_9110.Body.Coder.`Protocol` {}
 
     /// A codec that always refuses to decode — exercises `decode`.
-    struct Rejecting: RFC_9110.Body.Coder.`Protocol` {
-        enum Fault: Swift.Error, Equatable { case always }
-
-        typealias Input = [Byte]
-        typealias Buffer = [Byte]
-        typealias Output = [Byte]
-        typealias Failure = Fault
-        typealias Body = Never
-
-        static var contentType: HTTP.MediaType { .plain }
-
-        var body: Never { borrowing get { return fatalError("leaf") } }
-
-        func parse(_ input: inout [Byte]) throws(Fault) -> [Byte] {
-            throw .always
-        }
-
-        func serialize(_ output: [Byte], into buffer: inout [Byte]) throws(Fault) {
-            buffer.append(contentsOf: output)
-        }
-    }
+    struct Rejecting: RFC_9110.Body.Coder.`Protocol` {}
 
     static let hello: [Byte] = Array("hello".utf8).map(Byte.init)
 
     /// Media names for the witness fixtures — the witness takes its media type
     /// at the type level, so each one needs a name to point at.
-    enum OctetStream: RFC_9110.Body.Coder.Media {
-        static var contentType: HTTP.MediaType { .octetStream }
+    enum OctetStream: RFC_9110.Body.Coder.Media {}
+
+    enum ApplicationJSON: RFC_9110.Body.Coder.Media {}
+}
+
+extension RFC_9110.Body.Coder.Test.Passthrough {
+    typealias Input = [Byte]
+    typealias Buffer = [Byte]
+    typealias Output = [Byte]
+    typealias Failure = Never
+    typealias Body = Never
+
+    static var contentType: HTTP.MediaType { .plain }
+
+    var body: Never { borrowing get { return fatalError("leaf") } }
+
+    func parse(_ input: inout [Byte]) -> [Byte] {
+        defer { input = [] }
+        return input
     }
 
-    enum ApplicationJSON: RFC_9110.Body.Coder.Media {
-        static var contentType: HTTP.MediaType { .json }
+    func serialize(_ output: [Byte], into buffer: inout [Byte]) {
+        buffer.append(contentsOf: output)
     }
+}
+
+extension RFC_9110.Body.Coder.Test.Rejecting {
+    enum Fault: Swift.Error, Equatable { case always }
+}
+
+extension RFC_9110.Body.Coder.Test.Rejecting {
+    typealias Input = [Byte]
+    typealias Buffer = [Byte]
+    typealias Output = [Byte]
+    typealias Failure = Fault
+    typealias Body = Never
+
+    static var contentType: HTTP.MediaType { .plain }
+
+    var body: Never { borrowing get { return fatalError("leaf") } }
+
+    func parse(_ input: inout [Byte]) throws(Fault) -> [Byte] {
+        throw .always
+    }
+
+    func serialize(_ output: [Byte], into buffer: inout [Byte]) throws(Fault) {
+        buffer.append(contentsOf: output)
+    }
+}
+
+extension RFC_9110.Body.Coder.Test.OctetStream {
+    static var contentType: HTTP.MediaType { .octetStream }
+}
+
+extension RFC_9110.Body.Coder.Test.ApplicationJSON {
+    static var contentType: HTTP.MediaType { .json }
 }
 
 // MARK: - Unit
